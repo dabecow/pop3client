@@ -27,6 +27,16 @@ public class Client {
     return log;
   }
 
+  public void appendToLog(String message){
+    this.log += message;
+  }
 
+  public PrintWriter getWriter() {
+    return writer;
+  }
+
+  public BufferedReader getIn() {
+    return in;
+  }
 
 }
