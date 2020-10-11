@@ -7,16 +7,22 @@ import java.io.PrintWriter;
 import java.net.Socket;
 
 public class Client {
-  private final Socket socket;
-  private final BufferedReader in;
-  private final PrintWriter writer;
+  private Socket socket;
+  private BufferedReader in;
+  private PrintWriter writer;
   private String log;
 
-  public Client(String host, int port) throws IOException {
-    socket = new Socket(host, port);
+  public Client(){
+    log = "Log:\n";
+  }
+
+  public void setSocket(Socket socket){
+    this.socket = socket;
+  }
+
+  public void initStreams() throws IOException {
     in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     writer = new PrintWriter(socket.getOutputStream(), true);
-    log = "Log:\n";
   }
 
   public void setLog(String log) {

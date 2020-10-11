@@ -2,30 +2,43 @@ package edu.networks.pop3.client.controller;
 
 import edu.networks.pop3.client.model.Client;
 import java.io.IOException;
+import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.Base64;
 
-public class ClientController {
-  private Client client;
+public class ClientController implements IClientController{
+  private final Client client;
 
-  ClientController(Client client){
+  public ClientController(Client client){
     this.client = client;
   }
 
-  public void sendMessage(String message){
+  private void sendMessage(String message){
     client.getWriter().println(message);
-    System.out.println("[CLIENT] " + message);
-    client.appendToLogLn("[CLIENT]" + message);
+    client.appendToLogLn("[CLIENT] " + message);
   }
 
   public String receiveAnswer() throws IOException {
-    String answer = client.getIn().readLine();
+
+    String answer = "";
+
+    do {
+      int c = client.getIn().read();
+      answer+=(char)c;
+    } while(client.getIn().ready());
+
     client.appendToLogLn("[SERVER] " + answer);
-    System.out.println("[SERVER] " + answer);
     return answer;
   }
 
-  public boolean authorise(String username, String password) throws IOException {
+  @Override
+  public void connectClient(String host, int port) throws IOException {
+    client.setSocket(new Socket(host, port));
+    client.initStreams();
+
+  }
+
+  public boolean authoriseBase64(String username, String password) throws IOException {
     sendMessage("USER " + Base64.getEncoder().encodeToString(username.getBytes()));
 
     if (receiveAnswer().toLowerCase().startsWith("-err"))
@@ -34,9 +47,21 @@ public class ClientController {
     return !receiveAnswer().toLowerCase().startsWith("-err");
   }
 
-  public boolean quit() throws IOException {
+  @Override
+  public boolean authorise(String username, String password) throws IOException {
+    sendMessage("USER " + username);
+
+    if (receiveAnswer().toLowerCase().startsWith("-err"))
+      return false;
+    sendMessage("PASS " + password);
+    return !receiveAnswer().toLowerCase().startsWith("-err");
+  }
+
+  public String quit() throws IOException {
     sendMessage("QUIT");
-    return receiveAnswer().toLowerCase().startsWith("+ok");
+    String answer = receiveAnswer();
+    client.getSocket().close();
+    return answer;
   }
 
   public String getMailBoxStatistics() throws IOException {
@@ -59,29 +84,34 @@ public class ClientController {
     return receiveAnswer();
   }
 
-  public boolean deleteMessage(String number) throws IOException {
+  public String deleteMessage(String number) throws IOException {
     sendMessage("DELE " + number);
-    return receiveAnswer().startsWith("+OK");
+    return receiveAnswer();
   }
 
-  public boolean checkConnection() throws IOException {
+  public String checkConnection() throws IOException {
     sendMessage("NOOP");
     client.getSocket().setSoTimeout(500);
     try {
-      return receiveAnswer().startsWith("+OK");
+      return receiveAnswer();
     } catch (SocketTimeoutException e) {
-      return false;
+      return "No connection";
     }
   }
 
-  public boolean resetMessagesMarks() throws IOException {
+  public String resetMessagesMarks() throws IOException {
     sendMessage("RSET");
-    return receiveAnswer().startsWith("+OK");
+    return receiveAnswer();
   }
 
   public String getMessageLines(String messageNumber, String lines) throws IOException {
     sendMessage("TOP " + messageNumber + " " + lines);
     return receiveAnswer();
+  }
+
+  @Override
+  public String getLog() {
+    return client.getLog();
   }
 
 }
