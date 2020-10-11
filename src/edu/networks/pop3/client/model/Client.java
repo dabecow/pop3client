@@ -31,6 +31,14 @@ public class Client {
     this.log += message;
   }
 
+  public void appendToLogLn(String message){
+    this.log += message += "\n";
+  }
+
+  public Socket getSocket() {
+    return socket;
+  }
+
   public PrintWriter getWriter() {
     return writer;
   }
